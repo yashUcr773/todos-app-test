@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Trash2, Plus, Check } from 'lucide-react';
 
 interface Todo {
@@ -12,10 +12,38 @@ interface Todo {
 
 type Filter = 'all' | 'active' | 'completed';
 
+const STORAGE_KEY = 'todos-app-data';
+
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load todos from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedTodos = localStorage.getItem(STORAGE_KEY);
+      if (savedTodos) {
+        setTodos(JSON.parse(savedTodos));
+      }
+    } catch (error) {
+      console.error('Error loading todos from localStorage:', error);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  // Save todos to localStorage whenever todos change
+  useEffect(() => {
+    if (isLoaded) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+      } catch (error) {
+        console.error('Error saving todos to localStorage:', error);
+      }
+    }
+  }, [todos, isLoaded]);
 
   const addTodo = () => {
     if (inputValue.trim()) {
@@ -49,6 +77,22 @@ export default function Home() {
   });
 
   const activeTodosCount = todos.filter(todo => !todo.completed).length;
+
+  // Show loading state while hydrating from localStorage
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+        <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <h1 className="text-3xl font-bold text-center text-gray-800 dark:text-white mb-8">
+            Todo App
+          </h1>
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            Loading...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
